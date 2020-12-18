@@ -21,7 +21,7 @@ sub r2, #LOWGPIO
 mov r1, #0
 setled:
     // multiplies by 3:
-    // bitshift (multiplys by 2)
+    // bitshift (multiplies by 2)
     // then plus r2
     mov r3, r2, lsl #1
     add r3, r2
