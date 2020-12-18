@@ -8,7 +8,8 @@
  * Make sure to use GPIO pins 20-23 (or 20-27) for your scanner.
  */
 
-.equ DELAY, 0x090000
+.equ DELAY, 0x590000
+.equ SMALLDELAY, 300
 .equ LOWGPIO, 20
 .equ HIGHGPIO, 23
 
@@ -35,7 +36,7 @@ setled:
     mov r4, r5, lsl r3
     orr r1, r1, r4
 
-    // We decrement the loop and exit once r2 == -1
+    // We decrement the loop and exit once r2 < 0
     subs r2, #1
     bge setled
 
@@ -45,40 +46,31 @@ str r1, [r0]
 // if R5 is 1, we go forwards
 // if R5 is 0, we go backward
 mov r5, #0
+
+// R3 is the GPIO of the center LED
 mov r3, #LOWGPIO
 
-// flipbit function flips R5 from 0 to 1 and vice versa
+// flipbit function flips R5 between 0 and 1
 flipbit:
     eor r5, #1
 
 loop:
-    // We set the r3-th bit of SET0
-    mov r1, #1
-    mov r1, r1, lsl r3
-
-    // set SET0 to hold the value in r3
-    ldr r0, SET0
-    str r1, [r0]
-
     // delay
     mov r2, #DELAY
-    wait1:
-        subs r2, #1
-        bne wait1
 
-    // set SET0 to hold the value in r3
-    ldr r0, CLR0
-    str r1, [r0]
+    one_blink:
+        # b brightness_max
+        # b brightness_mid
 
-    // delay
-    mov r2, #DELAY
-    wait2:
-        subs r2, #1
-        bne wait2
+        // r3 will be set to brightest
+        b lightup
+        
+        after_all_toggles:
+        subs r2, #SMALLDELAY
+        bge one_blink
 
     // As mentioned, if R5 is 1 we go forwards
     // otherwise we go backwards
-
     cmp r5, #1
     beq forward
 
@@ -100,6 +92,66 @@ loop:
         beq flipbit
 
     b loop
+
+
+// flow of code:
+// lightup -> brightness_max -> flick -> brightness_mid -> flick -> after_all_toggles (main code)
+lightup:
+    // We set the r3-th bit of SET0
+    mov r1, #1
+    mov r1, r1, lsl r3
+
+    mov r10, #0 // variable to see which cond to run
+    b brightness_max
+
+
+# Invariant
+# The whole thing runs DELAY times
+# Number of cycles on = Small Delay On 
+# Number of cycles off = Small Delay Off
+brightness_max:
+    mov r6, #250
+    b flick
+
+flick:
+    // set r6 to be on
+    ldr r0, SET0
+    str r1, [r0]
+
+    sub r2, r6
+    small_delay:
+        subs r6, #1
+        bge small_delay
+
+    // set CLR0 to hold the value in r3
+    ldr r0, CLR0
+    str r1, [r0]
+
+    mov r8, #SMALLDELAY
+    sub r7, r8, r6
+
+    sub r2, r7
+    small_delay2:
+        subs r7, #1
+        bge small_delay2
+
+    @ if r10 is set, exit, else, set r10 and go brightness mid
+    subs r10, #1
+    beq after_all_toggles
+
+    // TODO Code currently only light up r3 and r3+1 gpio
+    lsl r1, #1
+    mov r10, #1
+    b brightness_mid
+
+brightness_mid:
+    mov r6, #50
+    b flick
+
+brightness_low:
+    mov r6, #50
+    b flick
+
 
 FSEL0: .word 0x20200000
 FSEL1: .word 0x20200004
