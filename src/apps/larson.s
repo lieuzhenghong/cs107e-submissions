@@ -8,7 +8,7 @@
  * Make sure to use GPIO pins 20-23 (or 20-27) for your scanner.
  */
 
-.equ DELAY, 0x590000
+.equ DELAY, 0x190000
 .equ SMALLDELAY, 300
 .equ LOWGPIO, 20
 .equ HIGHGPIO, 23
@@ -59,13 +59,19 @@ loop:
     mov r2, #DELAY
 
     one_blink:
-        # b brightness_max
-        # b brightness_mid
+        // gpio in r3 will be set to brightest
+        bl brightness_max
 
-        // r3 will be set to brightest
-        b lightup
+        @ left gpio
+        sub r3, #1
+        bl brightness_low
+
+        @ right gpio
+        add r3, #2
+        bl brightness_low
+
+        sub r3, #1
         
-        after_all_toggles:
         subs r2, #SMALLDELAY
         bge one_blink
 
@@ -111,10 +117,9 @@ lightup:
 # Number of cycles off = Small Delay Off
 brightness_max:
     mov r6, #250
-    b flick
 
-flick:
-    // set r6 to be on
+    mov r1, #1
+    mov r1, r1, lsl r3
     ldr r0, SET0
     str r1, [r0]
 
@@ -134,23 +139,62 @@ flick:
     small_delay2:
         subs r7, #1
         bge small_delay2
-
-    @ if r10 is set, exit, else, set r10 and go brightness mid
-    subs r10, #1
-    beq after_all_toggles
-
-    // TODO Code currently only light up r3 and r3+1 gpio
-    lsl r1, #1
-    mov r10, #1
-    b brightness_mid
+    
+    bx lr
 
 brightness_mid:
     mov r6, #50
-    b flick
+
+    mov r1, #1
+    mov r1, r1, lsl r3
+    ldr r0, SET0
+    str r1, [r0]
+
+    sub r2, r6
+    small_delay3:
+        subs r6, #1
+        bge small_delay3
+
+    // set CLR0 to hold the value in r3
+    ldr r0, CLR0
+    str r1, [r0]
+
+    mov r8, #SMALLDELAY
+    sub r7, r8, r6
+
+    sub r2, r7
+    small_delay4:
+        subs r7, #1
+        bge small_delay4
+    
+    bx lr
 
 brightness_low:
-    mov r6, #50
-    b flick
+    mov r6, #5
+
+    mov r1, #1
+    mov r1, r1, lsl r3
+    ldr r0, SET0
+    str r1, [r0]
+
+    sub r2, r6
+    small_delay5:
+        subs r6, #1
+        bge small_delay5
+
+    // set CLR0 to hold the value in r3
+    ldr r0, CLR0
+    str r1, [r0]
+
+    mov r8, #SMALLDELAY
+    sub r7, r8, r6
+
+    sub r2, r7
+    small_delay6:
+        subs r7, #1
+        bge small_delay6
+    
+    bx lr
 
 
 FSEL0: .word 0x20200000
