@@ -149,6 +149,8 @@ int convert_char(char c, unsigned int base) {
     return convert_digit(c, base);
 }
 
+
+// char* to int
 unsigned int convert(const char *str, const char **endptr, unsigned int base) {
     int i = 0;
     unsigned int sum = 0;
