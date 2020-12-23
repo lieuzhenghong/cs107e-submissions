@@ -134,17 +134,34 @@ static void test_strtonum(void)
     assert(val == 11259375);
 }
 
-// static void test_to_base(void)
-// {
-//     char buf[5];
-//     size_t bufsize = sizeof(buf);
+static void test_to_base(void)
+{
+    char buf[5];
+    size_t bufsize = sizeof(buf);
 
-//     memset(buf, 0x77, bufsize); // init contents with known value
+    memset(buf, 0x77, bufsize); // init contents with known value
 
-//     int n = signed_to_base(buf, bufsize, -9999, 10, 6);
-//     assert(strcmp(buf, "-099") == 0)
-//     assert(n == 6);
-// }
+    int n = unsigned_to_base(buf, bufsize, 9999, 10, 6);
+    assert(strcmp(buf, "0099") == 0)
+    assert(n == 6);
+
+    memset(buf, 0x77, bufsize);
+    n = signed_to_base(buf, bufsize, -9999, 10, 6);
+    assert(strcmp(buf, "-099") == 0)
+    assert(n == 6);
+
+    memset(buf, 0x77, bufsize);
+    n = unsigned_to_base(buf, bufsize, 1, 10, 3);
+    assert(strcmp(buf, "001") == 0)
+    assert(n == 3); 
+
+    char buf2[35];
+    n = unsigned_to_base(buf2, 20, 35, 16, 4);
+    assert(strcmp(buf2, "0023") == 0);
+    assert(n==4);
+
+    // test  0
+}
 
 // static void test_snprintf(void)
 // {
@@ -200,7 +217,7 @@ void main(void)
     test_strcmp();
     test_strlcat();
     test_strtonum();
-    // test_to_base();
+    test_to_base();
     // test_snprintf();
 
     // Our own test
